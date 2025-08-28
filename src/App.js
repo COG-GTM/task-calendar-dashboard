@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import {
   Layout,
   Calendar,
@@ -14,9 +14,10 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { useSelector, useDispatch } from "react-redux";
-import { addTask, editTask, deleteTask, setTasks } from "./redux/tasksSlice";
-import { nanoid } from "@reduxjs/toolkit";
+import { useTaskStore } from "./stores/taskStore";
+import { useCalendarStore } from "./stores/calendarStore";
+import { useUIStore } from "./stores/uiStore";
+import { useAnalyticsStore } from "./stores/analyticsStore";
 import dayjs from "dayjs";
 import { PieChart, Pie, Cell, Tooltip as ChartTooltip, Legend } from "recharts";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -41,65 +42,30 @@ const validationSchema = Yup.object({
 });
 
 export default function App() {
-  const tasks = useSelector((state) => state.tasks);
-  const dispatch = useDispatch();
+  const { tasks, addTask, editTask, deleteTask } = useTaskStore();
+  const { selectedDate, setSelectedDate } = useCalendarStore();
+  const { 
+    isModalOpen, 
+    isEditing, 
+    formData, 
+    editId, 
+    openAddModal, 
+    openEditModal, 
+    closeModal 
+  } = useUIStore();
+  const { 
+    tempFilter, 
+    appliedFilter, 
+    setTempFilter, 
+    applyFilter, 
+    resetFilter,
+    getChartData,
+    getFilteredTasks
+  } = useAnalyticsStore();
 
-  const [selectedDate, setSelectedDate] = useState(dayjs());
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({});
-  const [editId, setEditId] = useState(null);
-
-  const [tempFilter, setTempFilter] = useState("");
-  const [appliedFilter, setAppliedFilter] = useState("");
-
-  // Load from localStorage once
-  useEffect(() => {
-    const saved = localStorage.getItem("tasks");
-    if (saved) {
-      let parsed = JSON.parse(saved).map((task) => ({
-        ...task,
-        id: task.id || nanoid(),
-      }));
-      dispatch(setTasks(parsed));
-      localStorage.setItem("tasks", JSON.stringify(parsed));
-    }
-  }, [dispatch]);
-
-  // Save Redux → localStorage
-  useEffect(() => {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  const filteredTasks = tasks.filter(
-    (t) =>
-      t.date === selectedDate.format("YYYY-MM-DD") &&
-      (!appliedFilter || t.category === appliedFilter)
-  );
-
-  const chartData = Object.keys(categories).map((cat) => ({
-    name: cat,
-    value: tasks.filter((t) => t.category === cat).length,
-  }));
+  const filteredTasks = getFilteredTasks(tasks, selectedDate, appliedFilter);
+  const chartData = getChartData(tasks, categories);
   const COLORS = Object.values(categories);
-
-  const openAddModal = (date = selectedDate) => {
-    setFormData({
-      title: "",
-      description: "",
-      category: "",
-      date: date.format("YYYY-MM-DD"),
-    });
-    setIsEditing(false);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (task) => {
-    setFormData(task);
-    setEditId(task.id);
-    setIsEditing(true);
-    setIsModalOpen(true);
-  };
 
   const dateCellRender = (value) => {
     const dateStr = value.format("YYYY-MM-DD");
@@ -151,15 +117,10 @@ export default function App() {
         </Select>
 
         <Space>
-          <Button type="primary" onClick={() => setAppliedFilter(tempFilter)}>
+          <Button type="primary" onClick={applyFilter}>
             Apply
           </Button>
-          <Button
-            onClick={() => {
-              setTempFilter("");
-              setAppliedFilter("");
-            }}
-          >
+          <Button onClick={resetFilter}>
             Reset
           </Button>
         </Space>
@@ -223,7 +184,7 @@ export default function App() {
                     <Button
                       type="link"
                       danger
-                      onClick={() => dispatch(deleteTask(item.id))}
+                      onClick={() => deleteTask(item.id)}
                     >
                       Delete
                     </Button>,
@@ -251,7 +212,7 @@ export default function App() {
       <Modal
         title={isEditing ? "Edit Task" : "Add Task"}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={closeModal}
         footer={null}
       >
         <Formik
@@ -267,12 +228,12 @@ export default function App() {
           validationSchema={validationSchema}
           onSubmit={(values, { resetForm }) => {
             if (isEditing) {
-              dispatch(editTask({ ...values, id: editId }));
+              editTask({ ...values, id: editId });
             } else {
-              dispatch(addTask(values));
+              addTask(values);
             }
             resetForm();
-            setIsModalOpen(false);
+            closeModal();
           }}
         >
           {({ values, setFieldValue }) => (
