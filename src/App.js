@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from "react";
 import {
   Layout,
-  Calendar,
   Typography,
   Button,
-  List,
-  Empty,
   Modal,
   Input,
   Select,
   DatePicker,
   Space,
-  Tag,
-  Tooltip,
 } from "antd";
+import { Routes, Route } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { addTask, editTask, deleteTask, setTasks } from "./redux/tasksSlice";
 import { nanoid } from "@reduxjs/toolkit";
@@ -21,6 +17,7 @@ import dayjs from "dayjs";
 import { PieChart, Pie, Cell, Tooltip as ChartTooltip, Legend } from "recharts";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import Calendar from "./components/Calendar";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -71,11 +68,6 @@ export default function App() {
     localStorage.setItem("tasks", JSON.stringify(tasks));
   }, [tasks]);
 
-  const filteredTasks = tasks.filter(
-    (t) =>
-      t.date === selectedDate.format("YYYY-MM-DD") &&
-      (!appliedFilter || t.category === appliedFilter)
-  );
 
   const chartData = Object.keys(categories).map((cat) => ({
     name: cat,
@@ -101,34 +93,6 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  const dateCellRender = (value) => {
-    const dateStr = value.format("YYYY-MM-DD");
-    const dayTasks = tasks.filter((t) => t.date === dateStr);
-    return (
-      <div>
-        {dayTasks.map((task) => (
-          <Tooltip
-            key={task.id}
-            title={`${task.title}${
-              task.description ? `: ${task.description}` : ""
-            }`}
-          >
-            <Tag
-              color={categories[task.category] || "default"}
-              style={{
-                margin: "1px 0",
-                padding: "0 4px",
-                cursor: "pointer",
-                fontSize: "12px",
-              }}
-            >
-              ●
-            </Tag>
-          </Tooltip>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -200,50 +164,20 @@ export default function App() {
         </Header>
 
         <Content style={{ padding: 20 }}>
-          <Calendar
-            fullscreen={false}
-            onSelect={(date) => setSelectedDate(date)}
-            dateCellRender={dateCellRender}
-          />
-
-          <Title level={4} style={{ marginTop: 20 }}>
-            Tasks for {selectedDate.format("DD MMM YYYY")}
-          </Title>
-
-          {filteredTasks.length > 0 ? (
-            <List
-              bordered
-              dataSource={filteredTasks}
-              renderItem={(item) => (
-                <List.Item
-                  actions={[
-                    <Button type="link" onClick={() => openEditModal(item)}>
-                      Edit
-                    </Button>,
-                    <Button
-                      type="link"
-                      danger
-                      onClick={() => dispatch(deleteTask(item.id))}
-                    >
-                      Delete
-                    </Button>,
-                  ]}
-                >
-                  <div>
-                    <strong>{item.title}</strong>
-                    {item.description && <div>{item.description}</div>}
-                    {item.category && (
-                      <div style={{ color: categories[item.category] }}>
-                        {item.category}
-                      </div>
-                    )}
-                  </div>
-                </List.Item>
-              )}
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <Calendar
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                  appliedFilter={appliedFilter}
+                  onEditTask={openEditModal}
+                  onDeleteTask={(id) => dispatch(deleteTask(id))}
+                />
+              } 
             />
-          ) : (
-            <Empty description="No tasks" />
-          )}
+          </Routes>
         </Content>
       </Layout>
 
