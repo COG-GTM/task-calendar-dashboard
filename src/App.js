@@ -203,7 +203,7 @@ export default function App() {
           <Calendar
             fullscreen={false}
             onSelect={(date) => setSelectedDate(date)}
-            dateCellRender={dateCellRender}
+            cellRender={dateCellRender}
           />
 
           <Title level={4} style={{ marginTop: 20 }}>
