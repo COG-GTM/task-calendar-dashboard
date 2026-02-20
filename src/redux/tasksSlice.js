@@ -1,4 +1,33 @@
 import { createSlice, nanoid } from "@reduxjs/toolkit";
+import dayjs from "dayjs";
+
+const generateRecurringInstances = (task, count = 30) => {
+  const instances = [];
+  const startDate = dayjs(task.date);
+  for (let i = 1; i <= count; i++) {
+    let nextDate;
+    switch (task.recurrence) {
+      case "daily":
+        nextDate = startDate.add(i, "day");
+        break;
+      case "weekly":
+        nextDate = startDate.add(i, "week");
+        break;
+      case "monthly":
+        nextDate = startDate.add(i, "month");
+        break;
+      default:
+        continue;
+    }
+    instances.push({
+      ...task,
+      id: nanoid(),
+      date: nextDate.format("YYYY-MM-DD"),
+      recurringParentId: task.id,
+    });
+  }
+  return instances;
+};
 
 const tasksSlice = createSlice({
   name: "tasks",
@@ -9,6 +38,10 @@ const tasksSlice = createSlice({
     addTask: {
       reducer: (state, action) => {
         state.push(action.payload);
+        if (action.payload.recurrence && action.payload.recurrence !== "none") {
+          const instances = generateRecurringInstances(action.payload);
+          state.push(...instances);
+        }
       },
       prepare: (task) => ({
         payload: { id: nanoid(), ...task },
@@ -26,10 +59,20 @@ const tasksSlice = createSlice({
       const idToDelete = String(action.payload);
       return state.filter((t) => String(t.id) !== idToDelete);
     },
+
+    deleteRecurringSeries: (state, action) => {
+      const parentId = String(action.payload);
+      return state.filter(
+        (t) =>
+          String(t.id) !== parentId &&
+          String(t.recurringParentId) !== parentId
+      );
+    },
   },
 });
 
-export const { setTasks, addTask, editTask, deleteTask } = tasksSlice.actions;
+export const { setTasks, addTask, editTask, deleteTask, deleteRecurringSeries } =
+  tasksSlice.actions;
 export default tasksSlice.reducer;
 
 
