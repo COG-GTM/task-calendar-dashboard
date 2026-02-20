@@ -26,10 +26,18 @@ const tasksSlice = createSlice({
       const idToDelete = String(action.payload);
       return state.filter((t) => String(t.id) !== idToDelete);
     },
+
+    deleteRecurringSeries: (state, action) => {
+      const seriesId = String(action.payload);
+      return state.filter(
+        (t) => String(t.recurrenceGroupId || t.id) !== seriesId
+      );
+    },
   },
 });
 
-export const { setTasks, addTask, editTask, deleteTask } = tasksSlice.actions;
+export const { setTasks, addTask, editTask, deleteTask, deleteRecurringSeries } =
+  tasksSlice.actions;
 export default tasksSlice.reducer;
 
 
