@@ -1,16 +1,40 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
+ * Task Manager - React Native App
  *
  * @format
  */
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import {
-  SafeAreaProvider,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
+import React, {useCallback, useState} from 'react';
+import {StatusBar, StyleSheet, View, useColorScheme} from 'react-native';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {TaskProvider} from './src/context/TaskContext';
+import HomeScreen from './src/screens/HomeScreen';
+import TaskFormScreen from './src/screens/TaskFormScreen';
+import type {Task} from './src/types/Task';
+
+type Screen = {name: 'home'} | {name: 'form'; task: Task | null};
+
+function AppContent() {
+  const [screen, setScreen] = useState<Screen>({name: 'home'});
+
+  const handleAddTask = useCallback(() => {
+    setScreen({name: 'form', task: null});
+  }, []);
+
+  const handleEditTask = useCallback((task: Task) => {
+    setScreen({name: 'form', task});
+  }, []);
+
+  const handleFormDone = useCallback(() => {
+    setScreen({name: 'home'});
+  }, []);
+
+  if (screen.name === 'form') {
+    return <TaskFormScreen task={screen.task} onDone={handleFormDone} />;
+  }
+
+  return <HomeScreen onAddTask={handleAddTask} onEditTask={handleEditTask} />;
+}
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
@@ -18,21 +42,12 @@ function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <AppContent />
+      <TaskProvider>
+        <View style={styles.container}>
+          <AppContent />
+        </View>
+      </TaskProvider>
     </SafeAreaProvider>
-  );
-}
-
-function AppContent() {
-  const safeAreaInsets = useSafeAreaInsets();
-
-  return (
-    <View style={styles.container}>
-      <NewAppScreen
-        templateFileName="App.tsx"
-        safeAreaInsets={safeAreaInsets}
-      />
-    </View>
   );
 }
 
