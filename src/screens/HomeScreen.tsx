@@ -128,7 +128,7 @@ export default function HomeScreen({onAddTask, onEditTask}: Props) {
           filteredTasks.length === 0 ? styles.emptyList : styles.list
         }
         ListEmptyComponent={
-          <EmptyState filtered={activeFilter !== 'all' || tasks.length > 0} />
+          <EmptyState filtered={activeFilter !== 'all' && tasks.length > 0} />
         }
         showsVerticalScrollIndicator={false}
       />
